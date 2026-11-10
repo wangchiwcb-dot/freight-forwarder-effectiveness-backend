@@ -1,0 +1,16 @@
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { Alert, Button, Form, Input, Spin } from 'antd';
+import { LockOutlined, UserOutlined, ArrowRightOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+interface Session { authenticated: boolean; user: string | null; source: 'demo'|'postgres' }
+const SessionContext=createContext<{session: Session; logout:()=>Promise<void>}|null>(null);
+export function SessionProvider({children}:{children:ReactNode}) {
+ const [session,setSession]=useState<Session|null>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+ const refresh=useCallback(async()=>{try{const r=await fetch('/api/session');if(!r.ok)throw new Error('管理服务暂时不可用，请稍后重试');setSession(await r.json());setError('');}catch(e){setError(e instanceof Error?e.message:'暂时无法连接');}},[]);
+ useEffect(()=>{void refresh();const expired=()=>{setSession(s=>s?{...s,authenticated:false,user:null}:s);setError('登录已过期，请重新登录');};window.addEventListener('admin:unauthorized',expired);return()=>window.removeEventListener('admin:unauthorized',expired);},[refresh]);
+ async function login(values:{username:string;password:string}){setBusy(true);setError('');try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)});const result=await r.json();if(!r.ok)throw new Error(result.message||'登录失败');setSession(result);}catch(e){setError(e instanceof Error?e.message:'无法登录，请重试');}finally{setBusy(false);}}
+ async function logout(){const r=await fetch('/api/logout',{method:'POST'});if(r.ok){setSession(s=>s?{...s,authenticated:false,user:null}:s);}else throw new Error('退出失败，请重试');}
+ if(!session)return <div className="boot-screen">{error?<Alert type="error" showIcon message={error} action={<Button onClick={()=>void refresh()}>重试</Button>}/>:<Spin size="large"/>}</div>;
+ if(!session.authenticated)return <div className="login-screen"><div className="login-card"><a className="brand" href="https://transit.omfreight.vip"><img src="/brand-mark.png" alt="中航环球"/><div><strong>中航环球</strong><span>ZHONGHANG GLOBAL</span></div></a><div className="login-content"><div className="eyebrow">TRANSIT MANAGEMENT</div><h1>登录渠道时效管理</h1><p>维护运输数据，掌握每一柜的完整进程。</p>{error&&<Alert className="mb-5" message={error} type="error" showIcon/>}<Form layout="vertical" onFinish={login} requiredMark={false} initialValues={{username:'admin'}}><Form.Item name="username" label="管理员账号" rules={[{required:true,message:'请输入账号'}]}><Input size="large" prefix={<UserOutlined/>} autoComplete="username" placeholder="管理员账号"/></Form.Item><Form.Item name="password" label="登录密码" rules={[{required:true,message:'请输入密码'}]}><Input.Password size="large" prefix={<LockOutlined/>} autoComplete="current-password" placeholder="请输入登录密码"/></Form.Item><Button size="large" type="primary" block htmlType="submit" loading={busy}>登录管理后台 <ArrowRightOutlined/></Button></Form><div className="login-security"><SafetyCertificateOutlined/> 仅限授权管理员访问 · 操作全程留痕</div></div></div><span className="login-footer">中航环球 · 渠道时效管理系统</span></div>;
+ return <SessionContext.Provider value={{session,logout}}>{children}</SessionContext.Provider>;
+}
+export function useSession(){const value=useContext(SessionContext);if(!value)throw new Error('SessionProvider missing');return value;}

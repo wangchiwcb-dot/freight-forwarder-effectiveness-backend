@@ -12,6 +12,7 @@ const Context = createContext<AdminContextValue | null>(null);
 async function request<T>(path: string, method='GET', body?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, {method,headers:body===undefined?undefined:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
   const payload = await response.json().catch(()=>({message:'服务暂时不可用，请稍后重试'}));
+  if(response.status===401) window.dispatchEvent(new Event('admin:unauthorized'));
   if(!response.ok) throw new Error(payload.message || '操作失败，请刷新后重试');
   return payload as T;
 }
@@ -35,7 +36,7 @@ export function AdminProvider({children}: {children: ReactNode}) {
   return <Context.Provider value={{data,busy,reload,
     save:(kind,id,input)=>mutate(`/${kind}${id?`/${id}`:''}`,id?'PUT':'POST',input,id?'更改已保存':'已创建，默认不在前台展示'),
     setPublished:(kind,record,published)=>mutate(`/${kind}/${record.id}/publication`,'PATCH',{published,version:record.version},published?'已开启展示开关':'已关闭展示开关'),
-    remove:(kind,record)=>mutate(`/${kind}/${record.id}`,'DELETE',{version:record.version},'记录已删除，操作日志已保留'),
+    remove:(kind,record)=>mutate(`/${kind}/${record.id}`,'DELETE',{version:record.version},data.source==='postgres'?'记录已归档，历史与操作日志已保留':'记录已删除，操作日志已保留'),
   }}>{children}</Context.Provider>;
 }
 export function useAdmin() {const value=useContext(Context);if(!value) throw new Error('AdminProvider missing');return value;}

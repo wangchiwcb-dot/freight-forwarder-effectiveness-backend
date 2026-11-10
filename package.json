@@ -1,0 +1,40 @@
+{
+  "name": "freight-transit-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4180",
+    "dev:api": "tsx watch server/index.ts",
+    "typecheck": "tsc --noEmit && tsc -p server/tsconfig.json --noEmit",
+    "build": "npm run typecheck && vite build && tsc -p server/tsconfig.json",
+    "start": "node dist/server/server/index.js",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@fastify/static": "^10.1.10",
+    "antd": "^5.29.0",
+    "dayjs": "^1.11.13",
+    "fastify": "^5.12.8",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "5.0.4",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "6.4.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": { "node": ">=22.13.0" }
+}
